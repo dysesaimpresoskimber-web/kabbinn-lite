@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   format, addMonths, subMonths, startOfMonth, endOfMonth, 
   startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, 
-  isToday, parseISO, isWithinInterval, startOfDay 
+  isToday, parseISO, isWithinInterval, startOfDay, differenceInDays 
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { bookingServices } from '../../services/bookingServices';
@@ -11,6 +11,10 @@ export const MonthlyCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Hover Tooltip State
+  const [hoveredEvent, setHoveredEvent] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     async function loadData() {
@@ -54,6 +58,11 @@ export const MonthlyCalendar = () => {
     return '#f59e0b'; // Manual / Orange
   };
 
+  const handleMouseMove = (e, evt) => {
+    setHoveredEvent(evt);
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
+
   return (
     <div style={{ marginTop: '24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -89,8 +98,8 @@ export const MonthlyCalendar = () => {
           ) : days.map((day, idx) => {
             const dayEvents = getEventsForDay(day);
             const isCurrentMonth = isSameMonth(day, monthStart);
-            // Pintamos rojo si está ocupado, sino verde clarito, dependiendo si tiene eventos
-            const bgColor = !isCurrentMonth ? '#f9fafb' : dayEvents.length > 0 ? '#FFEBEB' : '#E6F4EA';
+            // Pintamos blanco para mantenerlo limpio
+            const bgColor = !isCurrentMonth ? '#f9fafb' : '#ffffff';
 
             return (
               <div key={day.toString()} style={{ 
@@ -119,27 +128,64 @@ export const MonthlyCalendar = () => {
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {dayEvents.map(evt => (
-                    <div key={evt.id} style={{
-                      background: getEventColor(evt.canal),
-                      color: '#fff',
-                      fontSize: '11px',
-                      padding: '4px 6px',
-                      borderRadius: '4px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      cursor: 'pointer'
-                    }} title={`${evt.propiedad} - ${evt.nombre_cliente} (${evt.canal})`}>
-                      {evt.propiedad}: {evt.nombre_cliente}
-                    </div>
-                  ))}
+                  {dayEvents.map(evt => {
+                    const noc = Math.max(1, differenceInDays(parseISO(evt.check_out), parseISO(evt.check_in)));
+                    const precio = evt.monto ? Math.round(Number(evt.monto) / noc) : 0;
+                    
+                    return (
+                      <div 
+                        key={evt.id} 
+                        style={{
+                          background: getEventColor(evt.canal),
+                          color: '#fff',
+                          fontSize: '11px',
+                          padding: '4px 6px',
+                          borderRadius: '4px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => handleMouseMove(e, { ...evt, noc, precio })}
+                        onMouseMove={(e) => handleMouseMove(e, { ...evt, noc, precio })}
+                        onMouseLeave={() => setHoveredEvent(null)}
+                      >
+                        {evt.propiedad}: {evt.nombre_cliente}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+      
+      {/* Tooltip Hover flotante */}
+      {hoveredEvent && (
+        <div style={{
+          position: 'fixed',
+          top: mousePos.y + 15,
+          left: mousePos.x + 15,
+          background: 'white',
+          padding: '16px',
+          borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+          border: '1px solid var(--clr-border)',
+          zIndex: 1000,
+          pointerEvents: 'none',
+          minWidth: '220px'
+        }}>
+          <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--clr-primary)'}}>Reserva - {hoveredEvent.canal}</h4>
+          <p style={{margin: '0 0 6px 0', fontSize: '13px', color: 'var(--clr-text)'}}><strong>Propiedad:</strong> {hoveredEvent.propiedad}</p>
+          <p style={{margin: '0 0 6px 0', fontSize: '13px', color: 'var(--clr-text)'}}><strong>Huésped:</strong> {hoveredEvent.nombre_cliente}</p>
+          <p style={{margin: '0 0 6px 0', fontSize: '13px', color: 'var(--clr-text)'}}><strong>Noches:</strong> {hoveredEvent.noc}</p>
+          <p style={{margin: '0 0 6px 0', fontSize: '13px', color: 'var(--clr-text)'}}><strong>Personas:</strong> {hoveredEvent.cantidad_personas || 1}</p>
+          <p style={{margin: '0', fontSize: '14px', color: 'var(--clr-text)', fontWeight: 600}}>
+            Precio Noche: ₡ {hoveredEvent.precio.toLocaleString()}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
