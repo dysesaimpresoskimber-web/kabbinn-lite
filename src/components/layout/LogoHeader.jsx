@@ -1,8 +1,9 @@
 import React from 'react';
 
-export const LogoHeader = () => {
+export const LogoHeader = ({ onNew }) => {
   return (
     <header style={{
+      position: 'relative',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',

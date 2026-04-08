@@ -6,11 +6,17 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { bookingServices } from '../../services/bookingServices';
+import { ReservationDetails } from './ReservationDetails';
+import { ReservationForm } from './ReservationForm';
 
-export const MonthlyCalendar = () => {
+export const MonthlyCalendar = ({ onReloadRequired }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedDateStr, setSelectedDateStr] = useState('');
   
   // Hover Tooltip State
   const [hoveredEvent, setHoveredEvent] = useState(null);
@@ -64,7 +70,7 @@ export const MonthlyCalendar = () => {
   };
 
   return (
-    <div style={{ marginTop: '24px' }}>
+    <div style={{ marginTop: '48px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: 700 }}>Calendario de Ocupación</h2>
@@ -102,14 +108,24 @@ export const MonthlyCalendar = () => {
             const bgColor = !isCurrentMonth ? '#f9fafb' : '#ffffff';
 
             return (
-              <div key={day.toString()} style={{ 
-                minHeight: '120px', 
-                background: bgColor,
-                borderRight: '1px solid var(--clr-border)',
-                borderBottom: '1px solid var(--clr-border)',
-                padding: '8px',
-                opacity: isCurrentMonth ? 1 : 0.5
-              }}>
+              <div 
+                key={day.toString()} 
+                onClick={() => {
+                  setSelectedDateStr(format(day, 'yyyy-MM-dd'));
+                  setIsFormOpen(true);
+                }}
+                style={{ 
+                  minHeight: '120px', 
+                  background: bgColor,
+                  borderRight: '1px solid var(--clr-border)',
+                  borderBottom: '1px solid var(--clr-border)',
+                  padding: '8px',
+                  opacity: isCurrentMonth ? 1 : 0.5,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease'
+                }}
+                className="calendar-cell-hover"
+              >
                 <div style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between',
@@ -144,7 +160,12 @@ export const MonthlyCalendar = () => {
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEvent(evt);
                         }}
                         onMouseEnter={(e) => handleMouseMove(e, { ...evt, noc, precio })}
                         onMouseMove={(e) => handleMouseMove(e, { ...evt, noc, precio })}
@@ -186,6 +207,28 @@ export const MonthlyCalendar = () => {
           </p>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <ReservationDetails 
+        isOpen={!!selectedEvent}
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        onSuccess={() => {
+          setSelectedEvent(null);
+          if (onReloadRequired) onReloadRequired();
+        }}
+      />
+
+      {/* Create Modal */}
+      <ReservationForm
+        isOpen={isFormOpen}
+        initialDate={selectedDateStr}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={() => {
+          setIsFormOpen(false);
+          if (onReloadRequired) onReloadRequired();
+        }}
+      />
     </div>
   );
 };

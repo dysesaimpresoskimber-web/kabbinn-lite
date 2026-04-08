@@ -1,70 +1,109 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { bookingServices } from '../../services/bookingServices';
-import { format, parseISO } from 'date-fns';
 
-export const ReservationDetails = ({ isOpen, onClose, event, onDeleteSuccess }) => {
-  const [loading, setLoading] = useState(false);
+export const ReservationDetails = ({ isOpen, onClose, event, onSuccess }) => {
+  const [formData, setFormData] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && event) {
+      setFormData({
+        nombre_cliente: event.nombre_cliente || '',
+        telefono: event.telefono || '',
+        forma_de_pago: event.forma_de_pago || '',
+        monto: event.monto || '',
+        cantidad_personas: event.cantidad_personas || 1,
+        notas: event.notas || ''
+      });
+    }
+  }, [isOpen, event]);
 
   if (!isOpen || !event) return null;
 
   const handleDelete = async () => {
-    if (window.confirm("¿Seguro que deseas eliminar esta reserva? (Si viene de iCal, el sincronizador podría volver a insertarla si no se ha borrado en origen).")) {
-      setLoading(true);
-      try {
-        await bookingServices.deleteReservation(event.id);
-        if (onDeleteSuccess) onDeleteSuccess();
-        onClose();
-      } catch (error) {
-        alert("Error al eliminar: " + error.message);
-      } finally {
-        setLoading(false);
-      }
+    if (!window.confirm(`¿Estás seguro de eliminar esta reserva de ${event.nombre_cliente}?`)) return;
+    setSaving(true);
+    try {
+      await bookingServices.deleteBooking(event.id);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      alert("Error al eliminar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        monto: Number(formData.monto || 0),
+        cantidad_personas: Number(formData.cantidad_personas || 1)
+      };
+      await bookingServices.updateClientDetails(event.propiedad, event.check_in, payload);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      alert("Error al actualizar: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content fade-in" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">Detalles de Reserva</h2>
-          <button className="btn btn-secondary" onClick={onClose} style={{padding: '4px 10px'}}>X</button>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+        <h2 style={{ marginTop: 0, marginBottom: '8px', fontSize: '20px', color: 'var(--clr-text)' }}>Detalles de Reserva</h2>
+        <div style={{ marginBottom: '20px', padding: '12px', background: 'var(--clr-bg)', borderRadius: '8px' }}>
+          <p style={{ margin: '0 0 4px', fontSize: '14px' }}><strong>{event.propiedad}</strong> - {event.canal}</p>
+          <p style={{ margin: '0', fontSize: '13px', color: 'var(--clr-text-light)' }}>{event.check_in} a {event.check_out}</p>
         </div>
 
-        <div style={{ display: 'grid', gap: '16px', marginBottom: '32px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
           <div>
-            <span style={{color: 'var(--clr-text-light)', fontSize: '13px'}}>Cliente</span>
-            <div style={{fontWeight: 600, fontSize: '18px'}}>{event.cliente || event.nombre_cliente}</div>
+            <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Huésped Responsable</label>
+            <input required type="text" value={formData.nombre_cliente} onChange={e => setFormData({...formData, nombre_cliente: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--clr-border)' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-             <div>
-               <span style={{color: 'var(--clr-text-light)', fontSize: '13px'}}>Propiedad</span>
-               <div style={{fontWeight: 500}}>{event.propiedad || 'Cabina ' + event.cabin_id}</div>
-             </div>
-             <div>
-               <span style={{color: 'var(--clr-text-light)', fontSize: '13px'}}>Canal</span>
-               <div style={{fontWeight: 500}}>{event.canal}</div>
-             </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Monto Total (₡)</label>
+              <input required type="number" value={formData.monto} onChange={e => setFormData({...formData, monto: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--clr-border)' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Personas</label>
+              <input type="number" min="1" value={formData.cantidad_personas} onChange={e => setFormData({...formData, cantidad_personas: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--clr-border)' }} />
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-             <div>
-               <span style={{color: 'var(--clr-text-light)', fontSize: '13px'}}>Check-In</span>
-               <div style={{fontWeight: 500}}>{format(event.check_in instanceof Date ? event.check_in : parseISO(event.check_in), 'dd MMM yyyy')}</div>
-             </div>
-             <div>
-               <span style={{color: 'var(--clr-text-light)', fontSize: '13px'}}>Check-Out</span>
-               <div style={{fontWeight: 500}}>{format(event.check_out instanceof Date ? event.check_out : parseISO(event.check_out), 'dd MMM yyyy')}</div>
-             </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Celular</label>
+              <input type="text" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--clr-border)' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>F. de Pago</label>
+              <input type="text" value={formData.forma_de_pago} onChange={e => setFormData({...formData, forma_de_pago: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--clr-border)' }} />
+            </div>
           </div>
-        </div>
+          <div>
+             <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Notas Privadas</label>
+             <textarea rows="2" value={formData.notas} onChange={e => setFormData({...formData, notas: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--clr-border)', resize: 'vertical' }} />
+          </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={loading}>
-            {loading ? 'Eliminando...' : 'Eliminar'}
-          </button>
-          <button type="button" className="btn btn-primary" onClick={onClose} disabled={loading}>
-            Cerrar
-          </button>
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+            <button type="button" disabled={saving} onClick={handleDelete} className="btn-danger fade-in" style={{ background: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: saving ? 'wait' : 'pointer' }}>
+              Eliminar
+            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button type="button" onClick={onClose} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '6px' }}>Cerrar</button>
+              <button type="submit" disabled={saving} style={{ background: 'var(--clr-primary)', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: saving ? 'wait' : 'pointer' }}>
+                {saving ? 'Guardando...' : 'Actualizar'}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );
