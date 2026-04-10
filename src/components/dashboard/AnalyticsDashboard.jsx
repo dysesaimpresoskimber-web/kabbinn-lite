@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { DollarSign, CalendarCheck, Home, PieChart } from 'lucide-react';
+import { DollarSign, CalendarCheck, Home, PieChart, Moon } from 'lucide-react';
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { bookingServices } from '../../services/bookingServices';
-import { isSameMonth, parseISO } from 'date-fns';
+import { isSameMonth, parseISO, differenceInDays } from 'date-fns';
 
 export const AnalyticsDashboard = () => {
   const [stats, setStats] = useState({
@@ -10,6 +10,8 @@ export const AnalyticsDashboard = () => {
     reservasMes: 0,
     cabinaFavorita: '-',
     tarifaPromedio: 0,
+    nochesCabina1: 0,
+    nochesCabina2: 0,
     chartData: []
   });
   const [loading, setLoading] = useState(true);
@@ -22,6 +24,8 @@ export const AnalyticsDashboard = () => {
         
         let ventas = 0;
         let conteo = 0;
+        let nc1 = 0;
+        let nc2 = 0;
         const cabinas = {};
 
         // Monthly chart agg (roughly classifying by month index)
@@ -46,6 +50,10 @@ export const AnalyticsDashboard = () => {
             ventas += Number(r.monto || 0);
             conteo++;
             cabinas[r.propiedad] = (cabinas[r.propiedad] || 0) + 1;
+            
+            const noches = Math.max(1, differenceInDays(parseISO(r.check_out), parseISO(r.check_in)));
+            if (r.propiedad === 'Cabina 1') nc1 += noches;
+            if (r.propiedad === 'Cabina 2') nc2 += noches;
           }
         });
 
@@ -60,6 +68,8 @@ export const AnalyticsDashboard = () => {
           reservasMes: conteo,
           cabinaFavorita: fav,
           tarifaPromedio: conteo > 0 ? Math.round(ventas / conteo) : 0,
+          nochesCabina1: nc1,
+          nochesCabina2: nc2,
           chartData: montlyAgg // Keep zero months to see Jan-Dec curve
         });
       } catch (error) {
@@ -109,6 +119,22 @@ export const AnalyticsDashboard = () => {
             <div className="value">₡ {loading ? '...' : stats.tarifaPromedio.toLocaleString()}</div>
           </div>
           <div className="stat-icon blue"><PieChart size={24} /></div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-info">
+            <div className="label">Noches Cabina 1</div>
+            <div className="value">{loading ? '...' : stats.nochesCabina1}</div>
+          </div>
+          <div className="stat-icon blue"><Moon size={24} /></div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-info">
+            <div className="label">Noches Cabina 2</div>
+            <div className="value">{loading ? '...' : stats.nochesCabina2}</div>
+          </div>
+          <div className="stat-icon red"><Moon size={24} /></div>
         </div>
       </div>
 

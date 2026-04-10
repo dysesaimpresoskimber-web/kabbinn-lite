@@ -195,15 +195,15 @@ body {
 /* Cards & Stats */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
   background: var(--clr-surface);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 16px;
   box-shadow: var(--shadow-card);
   border: 1px solid var(--clr-border);
   display: flex;
@@ -212,20 +212,20 @@ body {
 }
 
 .stat-info .value {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .stat-info .label {
   color: var(--clr-text-light);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
