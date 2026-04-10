@@ -71,7 +71,7 @@ export const MonthlyCalendar = ({ onReloadRequired }) => {
 
   return (
     <div style={{ marginTop: '48px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: 700 }}>Calendario de Ocupación</h2>
           <p style={{ color: 'var(--clr-text-light)' }}>Visualización mensual y disponibilidad.</p>
@@ -85,18 +85,19 @@ export const MonthlyCalendar = ({ onReloadRequired }) => {
         </div>
       </div>
 
-      <div style={{ background: 'var(--clr-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--clr-border)', overflow: 'hidden' }}>
-        {/* Days of week header */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--clr-border)', background: 'var(--clr-bg)' }}>
-          {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
-            <div key={day} style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: 'var(--clr-text-light)', borderRight: '1px solid var(--clr-border)' }}>
-              {day}
-            </div>
-          ))}
-        </div>
+      <div style={{ background: 'var(--clr-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)', border: '1px solid var(--clr-border)', overflowX: 'auto' }}>
+        <div style={{ minWidth: '800px' }}>
+          {/* Headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--clr-border)', background: 'var(--clr-bg)' }}>
+            {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
+              <div key={day} style={{ padding: '16px', textAlign: 'center', fontWeight: 600, color: 'var(--clr-text-light)' }}>
+                {day}
+              </div>
+            ))}
+          </div>
 
-        {/* Calendar Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+          {/* Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {loading ? (
              <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--clr-text-light)' }}>
                Cargando reservas...
@@ -179,6 +180,7 @@ export const MonthlyCalendar = ({ onReloadRequired }) => {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
       
